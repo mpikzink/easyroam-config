@@ -1,0 +1,8 @@
+[Unit]
+Description=This timer will be active once easyroam is configured to check for expiration
+
+[Timer]
+OnCalendar=daily
+
+[Install]
+WantedBy=timers.target

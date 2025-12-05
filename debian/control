@@ -1,0 +1,14 @@
+Source: easyroam-config
+Section: misc
+Maintainer: Kevin Zink <kevin.zink@mpi-hd.mpg.de>
+Homepage: https://git.mpi-hd.mpg.de/Packages/mpik-settings
+Priority: optional
+Build-Depends: debhelper-compat (= 13), pandoc
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: easyroam-config
+Architecture: all
+Depends: network-manager, openssl
+Description: Configure easyroam via terminal
+ There is no need for sudo privilegues

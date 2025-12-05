@@ -1,0 +1,183 @@
+#!/bin/bash
+set -e
+
+_PASSWORD="$(printf "%08x" $SRANDOM)"
+_CONF_DIR="$HOME/.local/easyroam-certs"
+_CERT_PATH="$_CONF_DIR/cert.pem"
+_CHAIN_PATH="$_CONF_DIR/chain.pem"
+_PRIVKEY_PATH="$_CONF_DIR/privkey.pem"
+
+main() {
+
+        OPTS=$(getopt -o w:h --long warn:,help -- "$@")
+        if [[ $? != 0 ]]; then
+                usage
+                exit 0
+        fi
+        eval set -- "$OPTS"
+
+        while true; do
+            case "$1" in
+                -w|--warn)
+                    warn_days="$2"
+                    shift 2
+                    warn "$warn_days"
+                    exit 0
+                    ;;
+                -h|--help)
+                    usage
+                    exit 0
+                    ;;
+                --)
+                    shift
+                    break
+                    ;;
+                *)
+                    echo "Unknown option: $1" >&2
+                    exit 1
+                    ;;
+            esac
+        done
+
+        [ $# -ne 1 ] && { usage; exit 0; }
+
+        local input_file="$1"
+
+        command -v openssl >/dev/null 2>&1 || { echo "Aborted, openssl not found!" >&2 ; exit 1; }
+        command -v nmcli >/dev/null 2>&1 || { echo "Aborted, nmcli not found!" >&2 ; exit 1; }
+
+        mkdir -p "$_CONF_DIR" || { echo "Aborted, cannot create config directory." >&2; exit 1;  }
+        easyroam-extract "$input_file"
+        refresh_nmcli
+
+        systemctl --user enable --now easyroam-config.timer
+
+        echo
+        echo "The .p12 file is split into multiple files. They are stored in $_CONF_DIR"
+        echo "You should remove the source file because it contains unprotected sensitive data."
+        rm -i "$input_file"
+}
+
+easyroam-extract() {
+        local input_file="$1"
+
+        # set openssl legacy options if necessary
+        local SSL_OPTIONS=
+        OpenSSLversion=$(openssl version | awk '{print $2}' | sed -e 's/\..*$//')
+        if [ "$OpenSSLversion" -eq "3" ]; then
+            SSL_OPTIONS="-legacy"
+        fi
+        readonly SSL_OPTIONS
+
+        # check pkcs12 file
+        if ! openssl pkcs12 -in "$input_file" $SSL_OPTIONS -info -passin pass: -passout pass:"$_PASSWORD" > /dev/null 2>&1; then
+            echo "Aborted, $input_file input file does not seem to be a valid .p12 file." >&2
+            echo "Get the file from https://www.easyroam.de" >&2
+            exit 2
+        fi
+
+        # extract key, cert, ca and identity
+        openssl pkcs12 -in "$input_file" -clcerts $SSL_OPTIONS -nokeys -passin pass: -out "$_CERT_PATH"
+        openssl pkcs12 -in "$input_file" $SSL_OPTIONS -nocerts -passin pass: -passout pass:"$_PASSWORD" -out "$_PRIVKEY_PATH"
+        openssl pkcs12 -info -in "$input_file" $SSL_OPTIONS -cacerts -nokeys -passin pass: -out "$_CHAIN_PATH" > /dev/null 2>&1
+
+        # check for easyroam-cert files
+        [ -f "$_CERT_PATH" ] ||  { echo "Aborted, client_cert missing." >&2; exit 1;  }
+        [ -f "$_CHAIN_PATH" ] ||  { echo "Aborted, root_ca missing." >&2; exit 1;  }
+        [ -f "$_PRIVKEY_PATH" ] ||  { echo "Aborted, client_key missing." >&2; exit 1;  }
+}
+
+refresh_nmcli() {
+        readonly WLAN_NAME="eduroam"
+        readonly ALT_SUBJECT="DNS:easyroam.eduroam.de"
+
+        # TLS_1.3 = "0x100" not working with 22.04 see  all options in nm-settings-nmcli(5)
+        #readonly TLS_VERSION="0x1ff"
+
+        local cn="$(openssl x509 -noout -in "$_CERT_PATH" -subject | awk -F \, '{print $6}' | sed -e 's/.*=//' -e 's/\s*//')"
+
+        # check for wifi device
+        local wifi_name="$(nmcli -g TYPE,DEVICE device | grep -oP "wifi:\K.*")"
+
+        [ -z "$wifi_name" ] && { echo "Aborted, unable to find any wifi device!" >&2 ; exit 3; }
+
+        # Remove existing connections
+        nmcli connection show | \
+        awk '$1==c{ print $2 }' c="$WLAN_NAME" | \
+                xargs -rn1 nmcli connection delete uuid
+
+        # switch wlan on
+        nmcli dev show "$wifi_name" | \
+                awk '$1==c{ print $2 }' c="GENERAL.STATE:" | \
+                xargs -rn1 nmcli radio wifi on
+
+        # Create new connection
+        nmcli connection add \
+                type wifi \
+                con-name "$WLAN_NAME" \
+                ssid "$WLAN_NAME" \
+                connection.permissions "user:$USER" \
+                -- \
+                wifi-sec.key-mgmt wpa-eap \
+                802-1x.eap tls \
+                802-1x.altsubject-matches "$ALT_SUBJECT" \
+                802-1x.identity "$cn" \
+                802-1x.ca-cert "$_CHAIN_PATH" \
+                802-1x.client-cert "$_CERT_PATH" \
+                802-1x.private-key "$_PRIVKEY_PATH" \
+                802-1x.private-key-password "$_PASSWORD" \
+                802-1x.private-key-password-flags 0x1
+}
+
+warn() {
+        # Warning threshold in days
+        local warn_days="$1"
+        readonly SECONDS_PER_DAY=86400
+
+        [ -f "$_CERT_PATH" ] || { echo "Aborted, $_CERT_PATH not found!" >&2 ; exit 1; }
+
+        enddate=$(openssl x509 -enddate -noout -in "$_CERT_PATH" 2>/dev/null)
+
+        if [[ $? -ne 0 || -z "$enddate" ]]; then
+            echo "Aborted, could not read certificate ($_CERT_PATH)" >&2
+            exit 2
+        fi
+
+        # Extract date string
+        expiry_date_str="${enddate#notAfter=}"
+
+        # Convert to UNIX timestamp
+        expiry_ts=$(date -d "$expiry_date_str" +%s 2>/dev/null)
+        if [[ -z "$expiry_ts" ]]; then
+            echo "Aborted, Could not parse certificate expiry date" >&2
+            exit 3
+        fi
+
+        now_ts=$(date +%s)
+        remaining_days=$(( (expiry_ts - now_ts) / SECONDS_PER_DAY ))
+
+        echo "Certificate: $_CERT_PATH"
+        echo "Expiry date: $expiry_date_str"
+        echo "Days remaining: $remaining_days"
+
+        if (( remaining_days <= warn_days && remaining_days >= 0 )); then
+            notify-send -i easyroam -a easyroam -u critical "Certificate expiry warning" \
+                "Your easyroam certificate (for the eduroam wifi) will expire in $remaining_days days. Run \`$(basename $0)\` to renew."
+        elif (( remaining_days < 0 )); then
+            notify-send -i easyroam -a easyroam -u critical "Certificate expired" \
+                "The easyroam certificate (for the eduroam wifi) expired on $expiry_date_str. Run \`$(basename $0)\` to renew."
+                "The certificate $_CERT_PATH expired on $expiry_date_str."
+        fi
+}
+
+usage() {
+    echo "Usage: $(basename $0) <easyroam_p12_file>"
+        echo
+        echo "At first you need to download the .p12 file from https://www.easyroam.de"
+        echo "Login with your SSO credentials to download via manual installation."
+        echo "This script extracts the necessary certificates and keys from the provided"
+        echo "easyroam .p12 file and configures a NetworkManager connection for eduroam."
+        echo
+}
+
+main "$@"

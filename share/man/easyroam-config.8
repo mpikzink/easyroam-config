@@ -1,0 +1,114 @@
+.TH EASYROAM-CONFIG 8 "December 2025" "1.1" "User Commands"
+.SH NAME
+easyroam-config \- extract certificates from Easyroam PKCS#12 file and configure eduroam WiFi connection
+
+.SH SYNOPSIS
+.B easyroam-config
+.I easyroam_p12_file
+
+.SH DESCRIPTION
+.B easyroam-config
+is a shell script that automates the configuration of an
+.B eduroam
+WiFi profile in NetworkManager using credentials from an Easyroam-provided
+PKCS#12 (.p12) client certificate file.
+
+
+.SH ARGUMENTS
+.TP
+.I easyroam_p12_file
+Path to the Easyroam PKCS#12 file as downloaded via the Easyroam portal
+(https://www.easyroam.de).  
+The file must contain the client certificate, key, and CA chain for your institution’s eduroam service.
+
+.SH OPTIONS
+This script does accept this options besides the mandatory PKCS#12 file argument.
+If incorrect arguments are provided, a usage message is displayed.
+
+.TP
+.B -h, --help
+Display a help message and exit.
+
+.TP
+.B -w, --warn [days]
+Display a warning if the certificate will expire within the specified number of days.
+Default is 30 days if no value is provided.
+
+.SH REQUIREMENTS
+GNU/Linux system with
+.BR bash (1)
+NetworkManager and its command-line tool
+.BR nmcli (1)
+installed and available in PATH.
+OpenSSL (version 1.x or 3.x), with optional
+.B \-legacy
+flag for compatibility when using OpenSSL 3.
+An Easyroam-supplied PKCS#12 file containing valid eduroam credentials.
+
+.SH SECURITY CONSIDERATIONS
+The script generates a random password for protecting the extracted client private key.
+The unencrypted PKCS#12 source file should be deleted after extraction to avoid leaking sensitive credentials.
+The extracted files are stored in:
+.I ~/.local/easyroam-certs
+with no special permissions enforced; users should adjust permissions manually to prevent unauthorized access.
+
+.SH ENVIRONMENT
+The following environment variables are set internally and are not intended for user modification:
+
+.TP
+.B _PASSWORD
+Randomly generated 8-hex-digit password protecting the private key file.
+.TP
+.B _CONF_DIR
+Directory for extracted credentials, default:
+.I ~/.local/easyroam-certs
+.TP
+.B _CERT_PATH
+Path to extracted client certificate PEM file.
+.TP
+.B _CHAIN_PATH
+Path to extracted CA certificate chain PEM file.
+.TP
+.B _PRIVKEY_PATH
+Path to extracted client private key, PEM format.
+.TP
+.B _CN
+File containing the extracted identity string.
+
+.SH EXIT STATUS
+.TP
+0
+Successful completion.
+.TP
+1
+General script failure.
+.TP
+2
+Invalid PKCS#12 file format or password.
+.TP
+3
+No WiFi device detected.
+
+.SH EXAMPLES
+To configure eduroam:
+
+.EX
+$ easyroam-config ~/Downloads/easyroam_credentials.p12
+.EE
+
+This will create and store certificates in \fI~/.local/easyroam-certs\fP and set up a new eduroam connection in NetworkManager.
+
+.SH AUTHOR
+Written by Kevin Zink <kevin.zink@mpi-hd.mpg.de> inspirated by the DFNs instructions for manual installation, adapted into a manual page by ChatGPT.
+
+.SH SEE ALSO
+.BR nmcli (1),
+.BR nm-settings-nmcli (5),
+.BR openssl (1),
+.BR NetworkManager(8),
+Easyroam portal: https://www.easyroam.de
+
+.SH DISCLAIMER
+This script modifies system-wide NetworkManager profiles and handles sensitive credentials.
+Use with caution, and only on systems you control.
+The author(s) and distributor(s) accept no liability for credential compromise or connection failures.
