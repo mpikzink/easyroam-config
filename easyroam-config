@@ -8,19 +8,24 @@ _CHAIN_PATH="$_CONF_DIR/chain.pem"
 _PRIVKEY_PATH="$_CONF_DIR/privkey.pem"
 
 main() {
-
-        OPTS=$(getopt -o w:h --long warn:,help -- "$@")
+        warn_days=30
+        OPTS=$(getopt -o w::h --long warn::,help -- "$@")
         if [[ $? != 0 ]]; then
                 usage
                 exit 0
         fi
         eval set -- "$OPTS"
-
+        echo $OPTS
         while true; do
             case "$1" in
                 -w|--warn)
-                    warn_days="$2"
-                    shift 2
+                    if [[ -n "$2" && "$2" != -* ]]; then
+                        warn_days="$2"
+                        echo $warn_days
+                        shift 2
+                    else
+                        shift 1
+                    fi
                     warn "$warn_days"
                     exit 0
                     ;;
@@ -171,7 +176,7 @@ warn() {
 }
 
 usage() {
-    echo "Usage: $(basename $0) <easyroam_p12_file>"
+    echo "Usage: $(basename $0) <profile_name.p12>"
         echo
         echo "At first you need to download the .p12 file from https://www.easyroam.de"
         echo "Login with your SSO credentials to download via manual installation."

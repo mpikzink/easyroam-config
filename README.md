@@ -28,7 +28,7 @@ It tries to avoid depedencies.
 
 ---
 
-## Installation for Users
+## Installation instructions for Users
 
 ```bash
 # Check existence for third party tools
@@ -47,11 +47,14 @@ easyroam-config
 ```
 ---
 
-## Installation for Administrators
+## Installation instructions for Administrators
 - Build a deb package with `make` or download the provided .deb package to enroll the script for your users (sudo needed for installation).
 - Inform your users to run the script to read the instructions.
   `easyroam-config`
 
 ---
-
-
+## Further Information
+- Read the MAN page for the most detailed usage instructions. German and English are available:
+  `man easyroam-config`
+- https://www.easyroam.de
+- https://eduroam.org

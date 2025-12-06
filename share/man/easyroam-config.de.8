@@ -1,0 +1,119 @@
+.TH EASYROAM-CONFIG 8 "Dezember 2025" "1.0" "Benutzerbefehle"
+.SH NAME
+easyroam-config \- Extrahiert Zertifikate aus einer Easyroam PKCS#12-Datei und richtet eine eduroam-WLAN-Verbindung ein
+
+.SH SYNOPSIS
+.B easyroam-config
+.I profile_name.p12
+
+.SH BESCHREIBUNG
+.B easyroam-config
+ist ein Shellskript, welches die Einrichtung eines
+.B eduroam
+WLAN-Profils automatisiert. Es verwendet dabei die Zugangsdaten aus einer von Easyroam
+.I (https://www.easyroam.de)
+bereitgestellten
+PKCS#12 (.p12) Client‑Zertifikatsdatei.
+
+.SH ARGUMENTE
+.TP
+.I easyroam_p12_file
+Pfad zur Easyroam PKCS#12-Datei, die zuvor über das Easyroam-Portal
+.I (https://www.easyroam.de)
+heruntergeladen werden muss.
+Die Datei enthält sowohl das Client‑Zertifikat, den privaten Schlüssel als auch die CA‑Kette für den eduroam-Dienst Ihrer Institution.
+Diese Informationen werden extrahiert und für die Verwendung mit
+.BR NetworkManager (8)
+in drei separaten .pem-Dateien gespeichert.
+
+.SH OPTIONEN
+Dieses Skript akzeptiert die obligatorische PKCS#12‑Datei zur Einrichtung, oder alternativ die folgenden Optionen:
+
+.TP
+.B -h, --help
+Zeigt eine Hilfemeldung an und beendet das Programm.
+
+.TP
+.B -w[tage], --warn=[Tage]
+Zeigt eine Warnung in der GUI an, falls das Zertifikat innerhalb der angegebenen Anzahl von Tagen abläuft.
+Standardwert ist 30 Tage, wenn kein Wert angegeben wird.
+.TP
+Wenn falsche Argumente übergeben werden, wird eine Hilfenachricht angezeigt.
+
+.SH VORAUSSETZUNGEN
+GNU/Linux‑System mit
+.BR bash (1)
+NetworkManager und dessen Kommandozeilenwerkzeug
+.BR nmcli (1)
+müssen installiert und im Suchpfad verfügbar sein.
+OpenSSL (Version 1.x oder 3.x), mit optionalem Parameter
+.B \-legacy
+für Kompatibilität bei der Verwendung von OpenSSL 3.
+Eine von Easyroam bereitgestellte PKCS#12‑Datei mit gültigen eduroam‑Anmeldedaten.
+
+.SH SICHERHEITSHINWEISE
+Das Skript erzeugt ein zufälliges Passwort, um den extrahierten privaten Schlüssel des Clients zu schützen.
+Die unverschlüsselte PKCS#12‑Quelldatei sollte nach der Einrichtung gelöscht werden, um ein mögliches Auslesen sensibler Anmeldedaten zu vermeiden.
+Das Löschen der Quelldatei wird bereits zum Ende der Einrichtung angeboten.
+Die extrahierten Dateien werden unter:
+.I ~/.local/easyroam-certs
+gespeichert.
+Die Private Schlüsseldatei 
+wird mit einem zufälligen Passwort vor Zugriff geschützt. Das Passwort wird außerdem automatisch "agent-owned (0x1)" 
+.BR nm-settings-nmcli (5)
+für den Zugriff durch NetworkManager z.B. in Keyring bzw. KWallet abgelegt.
+Nach einer erfolgreichen Einrichtung wird ein 
+.BR systemd.timer (5)
+im Benutzerkontext gesetzt, der täglich das Ablaufdatum des Zertifikats prüft
+und ab 30 Tage vor Ablauf des Zertifikats den User über
+.BR notify-send (1)
+warnt.
+
+.SH RÜCKGABEWERT
+Der Exit-Code von easyroam-config zeigt an, ob es die angefragte Aktion erfolgreich durchführen konnte und falls nicht, welche Art von Fehler aufgetreten ist.
+
+.TP
+0
+Erfolgreiche Ausführung.
+.TP
+1
+Allgemeiner Skriptfehler.
+.TP
+2
+Ungültiges PKCS#12‑Dateiformat oder falsches Passwort.
+.TP
+3
+Kein WLAN‑Modul gefunden.
+
+.SH BEISPIELE
+Zur Einrichtung von eduroam mit einer Easyroam PKCS#12-Datei:
+
+.EX
+$ easyroam-config ~/Downloads/profile_name.p12
+
+Zum Prüfen des Ablaufdatums:
+
+.EX
+$ easyroam-config -w30
+.EE
+
+Dies erstellt und speichert Zertifikate unter \fI~/.local/easyroam-certs\fP und richtet eine neue eduroam‑Verbindung in NetworkManager ein.
+
+.SH AUTOR
+Geschrieben von Kevin Zink <kevin.zink@mpi-hd.mpg.de>, inspiriert durch die DFN‑Anleitung zur manuellen Installation, und die Handbuchseite wurde durch ChatGPT ins Format gebracht.
+
+.SH FEHLER MELDEN
+Fehler und Verbesserungsvorschläge können über das Git‑Repository gemeldet werden:
+https:/git.mpi-hd.mpg.de/packages/easyroam-config
+
+.SH WEITERE INFORMATIONEN
+.BR nmcli (1),
+.BR nm-settings-nmcli (5),
+.BR openssl (1),
+.BR NetworkManager (8),
+Easyroam‑Portal: https://www.easyroam.de
+
+.SH HAFTUNGSAUSSCHLUSS
+Dieses Skript verändert systemweite NetworkManager‑Profile und verarbeitet sensible Anmeldedaten.
+Verwenden Sie es mit Vorsicht und nur auf Systemen, die Sie unter eigener Kontrolle haben.
+Die Autoren und Herausgeber übernehmen keine Haftung für die Kompromittierung von Anmeldedaten oder Verbindungsfehler.

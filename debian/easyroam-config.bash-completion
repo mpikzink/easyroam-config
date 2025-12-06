@@ -1,0 +1,38 @@
+# bash completion for easyroam-config
+# Save this file as /etc/bash_completion.d/easyroam-config (system-wide)
+# or as user in ~/.local/share/bash-completion/completions/completions/
+
+_easyroam_config()
+{
+    local cur prev opts files
+
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # Define available options
+    opts="--warn -w --help -h"
+
+    case "$prev" in
+        --warn|-w)
+            # Complete days (integer suggestions)
+            COMPREPLY=( $(compgen -W "7 14 30" -- "$cur") )
+            return 0
+            ;;
+    esac
+
+    # If current word starts with '-', complete with options
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+        return 0
+    fi
+
+    # Otherwise, suggest .p12 files from current or given directory
+    files=$(compgen -f -- "$cur" | grep -E '\.p12$')
+    COMPREPLY=( $files )
+
+    return 0
+}
+
+# Register the function to complete the command
+complete -F _easyroam_config easyroam-config
