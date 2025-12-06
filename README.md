@@ -39,7 +39,7 @@ wget https://git.mpi-hd.mpg.de/Packages/easyroam-config/raw/branch/main/easyroam
 
 # Make it executable
 chmod u+x easyroam-config
-mkdir -r $HOME/bin
+mkdir -p $HOME/bin
 mv easyroam-config $HOME/bin
 
 # Run the script to read the instructions
