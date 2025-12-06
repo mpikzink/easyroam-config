@@ -2,13 +2,13 @@
 
 ## Background and Motivation
 
-This project was initiated to address operational and compatibility issues encountered with the official **Easyroam Desktop Application** and its Snap-only distribution.
+This project was initiated to address operational and compatibility issues encountered with the official **Easyroam Desktop Application** ands its Snap-only distribution.
 
 ### Rationale
 
-- The official Easyroam application is distributed exclusively as a SNAP package.
-- SNAP is not desired in our environment due to limited integration like proxy and other system configurations.
-- The Easyroam Desktop App has exhibited stability and compatibility problems:
+- The official Easyroam application is distributed exclusively as a SNAP package since 8th July 2025. https://www.dfn.de/easyroam-linux/
+- SNAP is not desired in our environment due to limited integration like proxy and the need of sudo privilegues for normal users.
+- The Easyroam Desktop App has exhibited stability and compatibility problems we identified with our LTS Distros Ubuntu 22.04/24.04 :
   - Crashes or UI malfunctions in specific desktop environments (e.g., Wayland, KDE, HiRes Screens).
   - Failure to function under **Ubuntu 22.04**, application unusable in that context.
 
@@ -29,21 +29,28 @@ It tries to avoid depedencies.
 ---
 
 ## Installation for Users
-- Check `nmcli` and `openssl` are installed.
-  `apt install nmcli openssl`
-- Git-Clone/Copy `easyroam-config` script to your system.
-  ``
-- Check that it's executable
-  `chmod u+x easyroam-config`
-- Run the script to read the instructions
-  `./easyroam-config`
 
+```bash
+# Check existence for third party tools
+command -v nmcli openssl
+
+# Git-Clone/Copy `easyroam-config` script to your system.
+wget https://git.mpi-hd.mpg.de/Packages/easyroam-config/raw/branch/main/easyroam-config
+
+# Make it executable
+chmod u+x easyroam-config
+mkdir -r $HOME/bin
+mv easyroam-config $HOME/bin
+
+# Run the script to read the instructions
+easyroam-config
+```
 ---
 
 ## Installation for Administrators
-- Build a deb package or us the provided dep-package to enroll the script for your users (sudo needed for installation).
-- Run the script with user privileges to read the instructions
-  `./easyroam-config`
+- Build a deb package with `make` or download the provided .deb package to enroll the script for your users (sudo needed for installation).
+- Inform your users to run the script to read the instructions.
+  `easyroam-config`
 
 ---
 
