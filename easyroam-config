@@ -55,7 +55,7 @@ main() {
         easyroam-extract "$input_file"
         refresh_nmcli
 
-        systemctl --user enable --now easyroam-config.timer
+        systemctl --user cat easyroam-config.timer >/dev/null 2>&1 && systemctl --user enable --now easyroam-config.timer
 
         echo
         echo "The .p12 file is split into multiple files. They are stored in $_CONF_DIR"
