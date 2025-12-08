@@ -1,6 +1,6 @@
 [Unit]
-Description=Check your easyroam certificate and inform before expiration.
+Description=Check your easyroam certificate and inform before  30 days before expiration.
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/easyroam-config -w 30
+ExecStart=/usr/bin/easyroam-config --warn=30
