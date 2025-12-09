@@ -68,8 +68,8 @@ easyroam-extract() {
 
         # set openssl legacy options if necessary
         local SSL_OPTIONS=
-        OpenSSLversion=$(openssl version | awk '{print $2}' | sed -e 's/\..*$//')
-        if [ "$OpenSSLversion" -eq "3" ]; then
+        ssl_version=$(openssl version | awk '{print $2}' | sed -e 's/\..*$//')
+        if [ "$ssl_version" -eq "3" ]; then
             SSL_OPTIONS="-legacy"
         fi
         readonly SSL_OPTIONS
@@ -101,10 +101,8 @@ refresh_nmcli() {
 
         local cn="$(openssl x509 -noout -in "$_CERT_PATH" -subject | awk -F \, '{print $6}' | sed -e 's/.*=//' -e 's/\s*//')"
 
-        # check for wifi device
-        local wifi_name="$(nmcli -g TYPE,DEVICE device | grep -oP "wifi:\K.*")"
-
-        [ -z "$wifi_name" ] && { echo "Aborted, unable to find any wifi device!" >&2 ; exit 3; }
+        local wifi_device="$(nmcli -g TYPE,DEVICE device | grep -oP "wifi:\K.*")"
+        [ -z "$wifi_device" ] && { echo "Aborted, unable to find any wifi device!" >&2 ; exit 3; }
 
         # Remove existing connections
         nmcli connection show | \
@@ -112,7 +110,7 @@ refresh_nmcli() {
                 xargs -rn1 nmcli connection delete uuid
 
         # switch wlan on
-        nmcli dev show "$wifi_name" | \
+        nmcli dev show "$wifi_device" | \
                 awk '$1==c{ print $2 }' c="GENERAL.STATE:" | \
                 xargs -rn1 nmcli radio wifi on
 

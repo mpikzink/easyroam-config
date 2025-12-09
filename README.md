@@ -35,8 +35,7 @@ It tries to avoid depedencies.
 command -v nmcli openssl
 
 # Git-Clone/Copy `easyroam-config` script to your system.
-# TODO: This is not yet working since our git is not public. For now, download directly or via Copy/Paste:
-# wget https://git.mpi-hd.mpg.de/Packages/easyroam-config/raw/branch/main/easyroam-config
+# wget https://raw.githubusercontent.com/mpikzink/easyroam-config/refs/heads/main/easyroam-config
 
 # Make it executable
 chmod u+x easyroam-config
