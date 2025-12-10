@@ -55,7 +55,7 @@ main() {
         easyroam-extract "$input_file"
         refresh_nmcli
 
-        systemctl --user cat easyroam-config.timer >/dev/null 2>&1 && systemctl --user enable --now easyroam-config.timer
+        systemctl cat easyroam-config.timer >/dev/null 2>&1 && systemctl --user enable --now easyroam-config.timer
 
         echo
         echo "The .p12 file is split into multiple files. They are stored in $_CONF_DIR"
@@ -93,7 +93,7 @@ easyroam-extract() {
 }
 
 refresh_nmcli() {
-        readonly WLAN_NAME="eduroam"
+        readonly WIFI_NAME="eduroam"
         readonly ALT_SUBJECT="DNS:easyroam.eduroam.de"
 
         # TLS_1.3 = "0x100" not working with 22.04 see  all options in nm-settings-nmcli(5)
@@ -106,10 +106,10 @@ refresh_nmcli() {
 
         # Remove existing connections
         nmcli connection show | \
-        awk '$1==c{ print $2 }' c="$WLAN_NAME" | \
+        awk '$1==c{ print $2 }' c="$WIFI_NAME" | \
                 xargs -rn1 nmcli connection delete uuid
 
-        # switch wlan on
+        # switch wifi on
         nmcli dev show "$wifi_device" | \
                 awk '$1==c{ print $2 }' c="GENERAL.STATE:" | \
                 xargs -rn1 nmcli radio wifi on
@@ -117,8 +117,8 @@ refresh_nmcli() {
         # Create new connection
         nmcli connection add \
                 type wifi \
-                con-name "$WLAN_NAME" \
-                ssid "$WLAN_NAME" \
+                con-name "$WIFI_NAME" \
+                ssid "$WIFI_NAME" \
                 connection.permissions "user:$USER" \
                 -- \
                 wifi-sec.key-mgmt wpa-eap \
