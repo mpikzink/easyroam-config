@@ -54,7 +54,7 @@ easyroam-config
 
 ---
 ## Further Information
-- Read the MAN page for the most detailed usage instructions. German and English are available:
+- Read the MAN page for the most detailed usage instructions. [German](docs/easyroam-config.de.md) and [English](docs.easyroam-config.md) are available:
   `man easyroam-config`
 - https://www.easyroam.de
 - https://eduroam.org

@@ -3,8 +3,10 @@
 *.tar.xz
 *.tar.gz
 *.buildinfo
+*.build
 *.changes
 debian/.debhelper
 debian/debhelper-build-stamp
 debian/files
 .env
+share/man/*
