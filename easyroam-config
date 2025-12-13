@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
 
+_BASENAME="$(basename "$0")"
 _PASSWORD="$(printf "%08x" $SRANDOM)"
-_CONF_DIR="$HOME/.local/easyroam-certs"
+_CONF_DIR="${XDG_DATA_DIR:-$HOME/.local/share}/easyroam-certs"
 _CERT_PATH="$_CONF_DIR/cert.pem"
 _CHAIN_PATH="$_CONF_DIR/chain.pem"
 _PRIVKEY_PATH="$_CONF_DIR/privkey.pem"
@@ -15,7 +16,6 @@ main() {
                 exit 0
         fi
         eval set -- "$OPTS"
-        echo $OPTS
         while true; do
             case "$1" in
                 -w|--warn)
@@ -105,9 +105,7 @@ refresh_nmcli() {
         [ -z "$wifi_device" ] && { echo "Aborted, unable to find any wifi device!" >&2 ; exit 3; }
 
         # Remove existing connections
-        nmcli connection show | \
-        awk '$1==c{ print $2 }' c="$WIFI_NAME" | \
-                xargs -rn1 nmcli connection delete uuid
+        nmcli-remove "$WIFI_NAME"
 
         # switch wifi on
         nmcli dev show "$wifi_device" | \
@@ -165,22 +163,43 @@ warn() {
 
         if (( remaining_days <= warn_days && remaining_days >= 0 )); then
             notify-send -i easyroam -a easyroam -u critical "Certificate expiry warning" \
-                "Your easyroam certificate (for the eduroam wifi) will expire in $remaining_days days. Run \`$(basename $0)\` to renew."
+                "Your easyroam certificate (for the eduroam wifi) will expire in $remaining_days days. Run \`$_BASENAME\` to renew."
         elif (( remaining_days < 0 )); then
             notify-send -i easyroam -a easyroam -u critical "Certificate expired" \
-                "The easyroam certificate (for the eduroam wifi) expired on $expiry_date_str. Run \`$(basename $0)\` to renew."
+                "The easyroam certificate (for the eduroam wifi) expired on $expiry_date_str. Run \`$_BASENAME\` to renew."
                 "The certificate $_CERT_PATH expired on $expiry_date_str."
         fi
 }
 
+nmcli-remove() {
+    local given_ssid="$1"
+
+    nmcli -t -f NAME,UUID,TYPE connection show | \
+    grep 802-11-wireless | \
+    while IFS=: read -r name uuid type; do
+        ssid=$(nmcli -g 802-11-wireless.ssid connection show "$name")
+        if [[ "$ssid" == "$given_ssid" ]]; then
+            nmcli connection delete "$uuid"
+        fi
+    done
+}
+
 usage() {
-    echo "Usage: $(basename $0) <profile_name.p12>"
-        echo
-        echo "At first you need to download the .p12 file from https://www.easyroam.de"
-        echo "Login with your SSO credentials to download via manual installation."
-        echo "This script extracts the necessary certificates and keys from the provided"
-        echo "easyroam .p12 file and configures a NetworkManager connection for eduroam."
-        echo
+    echo "Usage: $_BASENAME <profile_name.p12>"
+    echo
+    echo "At first you need to download the .p12 file from https://www.easyroam.de"
+    echo "Login with your SSO credentials to download via manual installation."
+    echo "This script extracts the necessary certificates and keys from the provided"
+    echo "easyroam .p12 file and configures a NetworkManager connection for eduroam."
+    echo
+    if(! command -v xdg-open >/dev/null 2>&1); then
+        return
+    fi
+    read -r -p  'Do you want to open the easyroam website to download the .p12 file? [y/N]' answer
+    case "$answer" in
+        [yY]) xdg-open "https://www.easyroam.de" ;;
+        *) exit 0;;
+    esac
 }
 
 main "$@"
