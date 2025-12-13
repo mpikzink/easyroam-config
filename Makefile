@@ -1,14 +1,17 @@
 PKGNAME := $(shell dpkg-parsechangelog --show-field Source)
 PKGVERSION := $(shell dpkg-parsechangelog --show-field Version)
 PKGARCH := $(shell dpkg-parsechangelog --show-field Arch)
+MAN = 
 
-.PHONY: build clean
+.PHONY: deb mab clean
 
-build:
-	dpkg-buildpackage --unsigned-source --unsigned-changes
+
+all: man
+
+man:
+	pandoc -s -t man docs/easyroam-config.de.md -o share/man/easyroam-config.de.8
+	pandoc -s -t man docs/easyroam-config.md -o share/man/easyroam-config.8
+
+deb: man
+	debuild
 	mv ../$(PKGNAME)_$(PKGVERSION)* .
-	dh_clean
-
-clean:
-	dh_clean
-
