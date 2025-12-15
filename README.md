@@ -39,11 +39,9 @@ wget https://raw.githubusercontent.com/mpikzink/easyroam-config/refs/heads/main/
 
 # Make it executable
 chmod u+x easyroam-config
-mkdir -p $HOME/bin
-mv easyroam-config $HOME/bin
 
 # Run the script to read the instructions
-easyroam-config
+./easyroam-config
 ```
 ---
 
@@ -54,7 +52,7 @@ easyroam-config
 
 ---
 ## Further Information
-- Read the MAN page for the most detailed usage instructions. [German](docs/easyroam-config.de.md) and [English](docs.easyroam-config.md) are available:
+- Read the MAN page for the most detailed usage instructions. [German](docs/easyroam-config.de.md) and [English](docs/easyroam-config.md) are available:
   `man easyroam-config`
 - https://www.easyroam.de
 - https://eduroam.org
